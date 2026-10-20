@@ -26,7 +26,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 
 | Key | Type | Meaning |
 |---|---|---|
-| `dock_apps` | list of package names | The dock row, in order; missing apps are skipped |
+| `dock_apps` | list of package names | The dock row, in order; missing apps are skipped. `"input:HDMI 1"` (a port name from the Inputs menu, or an input id) is a tile that switches to that input |
 | `fill_dock` | bool | Fill the dock slots `dock_apps` leaves free with the first grid apps (true by default); false leaves them empty |
 | `hidden_apps` | list of package names | Never shown as tiles |
 | `live_tv_package`, `live_tv_action` | string | The Live TV app and, if it has no leanback entry, the action to start it with |

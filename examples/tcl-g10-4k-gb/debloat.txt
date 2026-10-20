@@ -1,0 +1,77 @@
+# TCL Smart TV Pro, EU (device G10, product G10_4K_GB, Realtek rtd6748), 1.8 GB RAM
+# Android 12 (Google TV), firmware STT2.230203.001, incremental AS16, TCL software V8-0008T01-LF1v534.002065
+# Same G10 platform and build as examples/tcl-55s470g; that list was the starting point.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/tcl-g10-4k-gb/debloat.txt
+# Undo:    TV_HOST=<tv ip> examples/tcl-g10-4k-gb/restore.sh
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.apps.tv.launcherx. Live TV / HDMI app: com.tcl.tv.
+# Keep: com.tcl.tv, com.tcl.tvinput, com.tcl.dashboard, com.tcl.suspension, com.tcl.autopair,
+# com.tcl.systemserver, com.tcl.providers.config, com.tcl.initsetup, com.tcl.useragreement,
+# com.tcl.factory.view, com.tcl.globalkeyoverlay, com.tcl.inputmethod.international and all com.realtek.*.
+#
+# As shipped, Samba TV, logkit and ttvs were enabled; Prime Video, YouTube Music and
+# com.tcl.magiconnectfree were already disabled.
+# Kept by choice: Chromecast, AirPlay, Miracast, Google TV phone remote, USB media player.
+# Off by choice: firmware updates (ttvs), voice assistant, Alexa, game bar, YouTube, Netflix, TCL Live.
+# Wi-Fi was saved by setupwraith during first setup: forgotten and re-joined in Settings before disabling it.
+
+# Batch 1: tracking and analytics
+tv.samba.ssm.ui                        # Samba TV ACR front end
+com.tcl.logkit                         # log capture and upload
+com.tcl.ttvs                           # Samba ACR frame service, TCL BI analytics, also the firmware updater
+com.google.android.feedback
+com.tcl.usercenter                     # TCL account sign-in nags
+
+# Batch 2: TCL content, ads and promos
+com.tcl.tv.tclhome_passive             # pushes TCL content to the home screen at boot
+com.tcl.partnercustomizer              # TCL tweaks to Google TV home rows
+com.tcl.interactive                    # TCL TIAS background service
+com.tcl.messagebox                     # TCL push messages and promos
+com.tcl.waterfall.overseas             # TCL web content feed
+android.autoinstalls.config.google.gtvpai   # silently installs partner apps
+
+# Batch 3: retail demo and preloads
+com.tcl.exhibit
+com.tcl.esticker
+com.tcl.ocean.instructions             # e-manual
+com.tcl.repairguide
+com.tcl.gamebar                        # re-enable for the console game-mode overlay
+com.tcl.UpdatePeripheral               # re-enable to update a TCL soundbar
+com.tcl.guard                          # TGuard cleaner / app manager
+com.google.android.marvin.talkback
+com.google.android.play.games
+
+# Batch 4: voice, Alexa, screensaver, Google preloads
+com.google.android.katniss             # Google Assistant voice search
+com.tcl.smartalexa                     # Alexa
+com.google.android.apps.tv.dreamx      # ambient mode screensaver (shows promos); screensaver moved to com.android.dreams.basic
+com.google.android.videos              # Google TV app (purchases/rentals)
+com.google.android.youtube.tvmusic     # shipped disabled
+com.amazon.amazonvideo.livingroom      # shipped disabled
+
+# Batch 5: streaming apps (off by choice)
+com.google.android.youtube.tv
+com.netflix.ninja
+com.netflix.tokenmanager
+com.tcl.channelplus                    # TCL Live FAST channels, also removes them from Live TV
+
+# Batch 6: leftovers (added after the first pass)
+com.tcl.t_solo                         # Bluetooth "listen alone"
+com.tcl.hearaid                        # hearing test / volume adaptation
+com.tcl.android.webview                # unused, Google WebView is the active provider
+com.google.android.syncadapters.calendar
+com.google.android.partnersetup        # partner referral tracking
+com.google.android.onetimeinitializer  # runs once at first boot
+com.google.android.tts                 # text-to-speech; re-enable for voice search or a screen reader
+com.android.printspooler
+com.android.wallpaper.livepicker
+com.android.dynsystem                  # Dynamic System Updates (GSI loader)
+com.android.hotspot2.osulogin          # Passpoint hotspot sign-in
+com.android.htmlviewer
+
+# Launcher: disable only AFTER launcher/ is installed and Home lands on it.
+# setupwraith owned the Wi-Fi network: forget and re-join it in Settings first.
+com.google.android.tungsten.setupwraith
+com.google.android.apps.tv.launcherx

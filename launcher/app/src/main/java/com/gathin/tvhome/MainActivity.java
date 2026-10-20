@@ -221,16 +221,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.post(MainActivity.this::updateWifiLabel);
         }
     };
-    /** Shows the Inputs pill once the TV registers an input: at boot HDMI inputs can appear after Home is shown. */
+    /** Shows the Inputs pill (and any input dock tile) once the TV registers an input: at boot HDMI inputs can
+     *  appear after Home is shown. */
     private final TvInputManager.TvInputCallback inputCallback = new TvInputManager.TvInputCallback() {
         @Override
         public void onInputAdded(String inputId) {
             updateInputsButton();
+            if (DockInputs.any(dockApps)) reloadApps(false);
         }
 
         @Override
         public void onInputRemoved(String inputId) {
             updateInputsButton();
+            if (DockInputs.any(dockApps)) reloadApps(false);
         }
     };
     /** Listens for any VPN coming up or going down, even one this app's traffic is excluded from. */
@@ -578,6 +581,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        // Home comes up at every boot: the moment to rebind key services the firmware refused to start.
+        KeyServices.rebindIfDropped(this);
+        PowerOnInput.onBoot(this);
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -2037,10 +2043,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Switches to a passthrough input (HDMI, AV). The standard way is ACTION_VIEW on its channel URI,
      *  which the Live TV app handles; where nothing takes that, the configured `input_action` is sent
      *  with the same URI instead (XGIMI's HDMI player only answers com.xgimi.action.hdmiPlayer). */
-    private void openInput(String inputId) {
-        Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
-        Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    void openInput(String inputId) {
+        Intent view = DockInputs.viewIntent(inputId);
+        Uri uri = view.getData();
         try {
             startActivity(view);
             return;
@@ -2132,10 +2137,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (!info.isPassthroughInput() || info.isHidden(this)) continue;
                 // A CEC device's row is added with its port, below.
                 if (info.getParentId() != null && inputIds.contains(info.getParentId())) continue;
-                CharSequence l = info.loadLabel(this);
-                String label = l == null ? info.getId() : l.toString();
+                String label = DockInputs.portLabel(this, info);
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
-                if (hdmi && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
                 CharSequence custom = info.loadCustomLabel(this);
                 boolean named = custom != null && custom.length() > 0 && !custom.toString().equals(label);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);

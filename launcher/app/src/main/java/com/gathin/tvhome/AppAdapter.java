@@ -14,6 +14,8 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.media.tv.TvInputInfo;
+import android.media.tv.TvInputManager;
 import android.net.Uri;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
@@ -59,12 +61,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, INPUT = 4;
 
         final int kind;
         final String label;
         final ComponentName component;
+        /** The app's package; for an INPUT tile its dock_apps entry ("input:HDMI 1"), so the dock order finds it. */
         final String pkg;
+        /** The TV input an INPUT tile switches to; null for every other kind. */
+        final String inputId;
         final Drawable banner;
         final Drawable icon;
         /** Text under the tile when it is focused in the grid: the label, plus the caption for a card. */
@@ -77,10 +82,21 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this(kind, label, component, component.getPackageName(), null, banner, icon, caption, accent);
+        }
+
+        /** A dock tile that switches to a TV input (dock_apps "input:..."); its component only keys focus and order. */
+        static Entry input(Context ctx, String dockEntry, String inputId, String label, Drawable icon) {
+            return new Entry(INPUT, label, new ComponentName(ctx, dockEntry), dockEntry, inputId, null, icon, null, 0);
+        }
+
+        private Entry(int kind, String label, ComponentName component, String pkg, String inputId, Drawable banner,
+                      Drawable icon, String caption, int accent) {
             this.kind = kind;
             this.label = label;
             this.component = component;
-            this.pkg = component.getPackageName();
+            this.pkg = pkg;
+            this.inputId = inputId;
             this.banner = banner;
             this.icon = icon;
             this.name = caption == null ? label : label + " \u00B7 " + caption;
@@ -270,6 +286,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 fresh.add(new Entry(label, component, banner, icon));
             }
         }
+        addDockInputs(fresh);
         Collections.sort(fresh, (a, b) -> {
             // The owner's own order first; tiles it does not know (new installs) follow by the rule below.
             int saved = Order.compare(savedRanks, a.component.flattenToShortString(), b.component.flattenToShortString());
@@ -309,6 +326,27 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (name == null || !name.startsWith("banner_")) return null;
         int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
         return id != 0 ? ctx.getDrawable(id) : null;
+    }
+
+    /** A tile per dock_apps "input:..." entry whose input the TV has (DockInputs); hidden inputs are skipped. */
+    private void addDockInputs(List<Entry> fresh) {
+        if (!DockInputs.any(favourites)) return;
+        TvInputManager tim = (TvInputManager) ctx.getSystemService(Context.TV_INPUT_SERVICE);
+        if (tim == null) return;
+        List<TvInputInfo> inputs = tim.getTvInputList();
+        for (String entry : favourites) {
+            if (!DockInputs.isInput(entry)) continue;
+            for (TvInputInfo info : inputs) {
+                if (!info.isPassthroughInput() || info.isHidden(ctx)) continue;
+                String port = DockInputs.portLabel(ctx, info);
+                if (!DockInputs.matches(entry, info.getId(), port)) continue;
+                // The name given in Settings > Inputs (e.g. "PlayStation") reads better on the tile than the port.
+                CharSequence custom = info.loadCustomLabel(ctx);
+                String label = custom != null && custom.length() > 0 ? custom.toString() : port;
+                fresh.add(Entry.input(ctx, entry, info.getId(), label, ctx.getDrawable(R.drawable.ic_input)));
+                break;
+            }
+        }
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -419,6 +457,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setVisibility(View.VISIBLE);
         }
         h.card.setOnClickListener(v -> launch(e));
+        if (e.kind == Entry.INPUT) {
+            h.card.setOnLongClickListener(null);   // no app behind it to show details for
+            return;
+        }
         h.card.setOnLongClickListener(v -> {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -435,6 +477,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
+        if (e.kind == Entry.INPUT) {
+            if (ctx instanceof MainActivity) ((MainActivity) ctx).openInput(e.inputId);
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
