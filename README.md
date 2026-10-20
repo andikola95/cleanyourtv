@@ -34,6 +34,22 @@ Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the
 screen with a clean launcher that looks like an Apple TV. **No root, no cable, nothing uninstalled,
 and a one-line restore if you change your mind.**
 
+## This fork
+
+A fork of [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv), set up on a TCL Smart TV Pro
+(Google TV 12, G10) with a Formuler IPTV box on HDMI 1 and a Sony soundbar on eARC. On top of upstream it adds:
+
+- **Inputs in the dock:** a `dock_apps` entry such as `input:HDMI 1` is a tile that switches straight to that input.
+- **Power-on input:** `power_on_input` switches the TV to an input every time it turns on, from standby or a full boot.
+- **Soundbar button:** `audio_reset_keycodes` turns a remote button (here Netflix) into "reconnect the soundbar". It
+  flips the TV's audio output to the speakers and back, which is the fix when the TV drops an ARC/eARC soundbar.
+- **Survives TCL's boot manager:** TCL firmware sometimes refuses to start the launcher's remote-key services at
+  boot. The launcher now notices and rebinds them itself, so the remote buttons keep working after a restart.
+- **[`examples/tcl-g10-4k-gb/`](examples/tcl-g10-4k-gb/):** the 42-package debloat list, restore script, launcher
+  config and a README for this TV, including the TCL quirks found along the way.
+
+Everything else works as upstream describes below.
+
 <p align="center">
   <sub><b>FEATURED IN</b></sub><br><br>
   <a href="https://techcrunch.com/2026/10/19/people-are-using-ai-to-make-their-smart-tvs-dumb-again/"><img src="docs/press/techcrunch.png" height="30" alt="TechCrunch"></a>&nbsp;&nbsp;
@@ -331,6 +347,9 @@ the install script finds `~/Android/Sdk` and the `java` on your PATH.
 - **Module cards** let any TV app declare its own tile (label, caption, glow). The launcher asks you once per app, Keep hidden by default, and remembers the answer for that app's signing key and card name. Hold OK on Settings and choose Module cards to change your mind. How to make one: [`docs/modules.md`](docs/modules.md); the contract: [`docs/specs/card.md`](docs/specs/card.md).
 - **Clock screensaver**: a drifting clock over the glow, so nothing burns in. Pick "Clock" in the TV's screensaver settings, or over ADB:
   `tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'`
+- **Inputs in the dock**: `input:HDMI 1` in `dock_apps` (or a theme) is a tile that switches to that input; the port name as the Inputs menu shows it, or an input id from `dumpsys tv_input`.
+- **Power-on input**: `power_on_input` (`input:HDMI 1`) switches to that input whenever the TV turns on. Needs `HOME_KEY_SERVICE=1`; Home still shows the launcher.
+- **Soundbar button**: `audio_reset_keycodes` makes a remote button set the global setting `audio_reset_setting` to `audio_reset_speaker` and back to `audio_reset_soundbar`, the same as switching the audio output to the TV speakers and back. On TCL Google TV that is `tcl_device_out_type`, 2 then 16. Needs `HOME_KEY_SERVICE=1`; build-and-install grants `WRITE_SECURE_SETTINGS` for it.
 - **Remote keys**: an optional accessibility service keeps the remote's Input button working on Google TV (`INPUT_KEY_SERVICE=1` at install) and can bring back other buttons only the stock launcher answered, such as the YouTube button (`app_keys` and `input_key_keycodes`, in `config.xml` or a theme; `HOME_KEY_SERVICE=1` reads `app_keys` too), another fixes sticks whose Home key sends ALL_APPS and opens Settings from the remote's gear button, even one Android does not map (`HOME_KEY_SERVICE=1`, scancodes or keycodes in `config.xml`). With `settings_key_panel` the gear opens a [small quick settings panel](docs/quick-settings-panel.jpg) instead, over Home or any app: TV settings, Display, Network, Apps and Launcher settings.
 - **Navigation** is deliberate: Up and Down move one row, the top buttons never fall through to tiles and Down from them returns to the dock tile you came from, the last focused app is remembered, and installing or removing an app refreshes the tiles while Home is open.
 - **Artwork**: app banners load at xhdpi or better, so low-density TV UIs do not downsample them before the focus zoom.
