@@ -73,6 +73,9 @@ TV_HOST=<tv ip> tools/theme.sh themes/<your theme>
   system service applies a change on its own (System Audio Mode, SPDIF mode), so writing 2 and then 16 is the
   same as switching the output to the speakers and back in Settings. The TV sometimes falls back to 2 by itself.
 - The remote's Netflix and YouTube buttons send keycodes 4062 and 4065, the gear button 83 (KEYCODE_NOTIFICATION).
+- Chromecast was kept, but the setup wizard is disabled, and on other Google TV sets that breaks casting after a
+  reboot ("Untrusted device"): the Cast receiver reads its credentials from setupwraith. Not tested here yet. If
+  casting fails, see docs/TROUBLESHOOTING.md, "Casting fails with Untrusted device".
 - Screenshots of HDMI come back empty; check `dumpsys activity activities | grep mResumedActivity` instead.
 - Location is off, so the Wi-Fi pill shows "Wi-Fi" instead of the network name.
 
